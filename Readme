@@ -1,1 +1,45 @@
-Readme first
+let r = 1;
+        let url = `https://marc.info/?l=linux-renesas-soc&r=${r}&s=GIT+PULL&q=t&w=4`;
+        let rLast = 2;
+        const fetchNow = () => {
+            fetch(url)
+            .then(rs => rs.text())
+            .then(data => {
+                const xmlParser = new DOMParser();
+                let xmlDoc = xmlParser.parseFromString(data, "text/html");
+                let childNodes = xmlDoc.getElementsByTagName("pre")[0].childNodes;
+                if (r === 1) {
+                    rLast = childNodes[3].href.split('r=');
+                    rLast = !!rLast[1] && !!rLast[1].split('&s') && rLast[1].split('&s')[0];
+                    rLast = rLast || 1; 
+                }
+                r += 1;
+                url = `https://marc.info/?l=linux-renesas-soc&r=${r}&s=GIT+PULL&q=t&w=4`;
+                for (let i=0; i <= childNodes.length; i+=1) {
+                    const childNode = childNodes[i];
+                    if (childNode && childNode.tagName && childNode.tagName.toLowerCase() === 'a' && childNode.href && childNode.outerHTML && childNode.outerHTML.toLowerCase().indexOf('git pull') > -1) {
+                        fetch(childNode.href)
+                        .then(rs => rs.text())
+                        .then(html => {
+                            xmlDoc = xmlParser.parseFromString(html, "text/html");
+                            childNodes = xmlDoc.getElementsByTagName("pre")[0].childNodes;
+                        const dateMatch = typeof childNodes[0].textContent == 'string' && childNodes[0].textContent.match(/\d{4}-\d{2}-\d{2}/);
+                            if (dateMatch && dateMatch[0]) {
+                                if (new Date(dateMatch[0]) >= new Date('2020-03-01')) {
+                                   console.log(`_______${dateMatch[0]}_______`);
+                                    console.log(childNode.href); 
+                                }
+                                else {
+                                    r = rLast + 1;
+                                    return;
+                                }
+                            }
+                        });
+                    }
+                }   
+                if (r <= +rLast) {
+                    fetchNow();
+                }
+            });  
+        }
+        fetchNow();
